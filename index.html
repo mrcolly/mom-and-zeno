@@ -38,8 +38,12 @@
           url("./assets/backgrounds/splash.png") center center / cover no-repeat
             fixed;
         background-color: #1a1a2e;
-        overflow: hidden;
-        height: 100%;
+        /* Allow vertical scroll specifically so the "scroll-1-px to retract
+           the URL bar" trick below has somewhere to scroll to. The body
+           gets `min-height: calc(100dvh + 1px)` to actually be scrollable;
+           horizontal scroll is still locked. */
+        overflow-x: hidden;
+        overflow-y: auto;
         width: 100%;
         touch-action: manipulation;
         -webkit-tap-highlight-color: transparent;
@@ -51,6 +55,14 @@
           "Helvetica Neue",
           sans-serif;
         color: #ffffff;
+      }
+
+      body {
+        /* One extra pixel of scrollable height. Imperceptible visually,
+           but enough that mobile Chrome treats the page as scrollable and
+           will retract its URL bar after the first user-gesture scroll
+           (see main.ts → bindUrlBarHider). */
+        min-height: calc(100dvh + 1px);
       }
 
       #game {

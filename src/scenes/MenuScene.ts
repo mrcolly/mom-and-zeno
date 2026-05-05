@@ -2,34 +2,6 @@ import Phaser from "phaser";
 import { GAME_HEIGHT, GAME_WIDTH, COLORS, FONT_FAMILY } from "../constants";
 import { createButton } from "../ui/Button";
 
-/** Same touch check we use in main.ts: any finger-input capable device. */
-function isTouchDevice(): boolean {
-  if (typeof window === "undefined") return false;
-  return "ontouchstart" in window || navigator.maxTouchPoints > 0;
-}
-
-/**
- * Best-effort enter-fullscreen for mobile. No-ops (silently) on:
- *   - desktops (we don't want fullscreen there),
- *   - already-fullscreen documents,
- *   - browsers that disable fullscreen for non-video elements (iPhone
- *     Safari) — `document.fullscreenEnabled` is false there.
- *
- * Where the request *is* attempted we attach `.catch()` so a denied
- * permission (e.g. Chrome's devtools mobile emulator) doesn't print an
- * unhandled-rejection warning in the console.
- */
-function requestMobileFullscreen(scene: Phaser.Scene): void {
-  if (!isTouchDevice()) return;
-  if (typeof document === "undefined" || !document.fullscreenEnabled) return;
-  if (document.fullscreenElement) return;
-  const parent = scene.scale.parent as HTMLElement | null;
-  const target = parent ?? scene.game.canvas;
-  // requestFullscreen returns a Promise in modern browsers; legacy ones may
-  // return undefined. Optional chaining handles both shapes.
-  void target?.requestFullscreen?.()?.catch(() => {});
-}
-
 /**
  * Title screen.
  *
@@ -97,21 +69,6 @@ export class MenuScene extends Phaser.Scene {
       height: 110,
       fontSize: 44,
       onClick: () => this.scene.start("CarCutsceneScene"),
-    });
-
-    // Mobile fullscreen MUST be requested synchronously inside the user
-    // gesture's call stack. Phaser's `setInteractive` button defers click
-    // callbacks to the next frame's input pump, by which time browsers
-    // (Chrome on Android in particular) consider the user activation
-    // expired for fullscreen purposes — the promise rejects with
-    // "Permissions check failed" and the screen never expands. So we
-    // listen for `pointerdown` natively on the canvas and trigger the
-    // request from there. Runs once; removes itself on scene shutdown.
-    const canvas = this.game.canvas;
-    const onFirstTap = () => requestMobileFullscreen(this);
-    canvas.addEventListener("pointerdown", onFirstTap, { once: true });
-    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
-      canvas.removeEventListener("pointerdown", onFirstTap);
     });
 
     this.add

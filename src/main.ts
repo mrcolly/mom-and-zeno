@@ -94,6 +94,27 @@ function shouldRunGame(): boolean {
   return !(isPortrait && isTouch);
 }
 
+/**
+ * Mobile Chrome retracts its URL/tab bar when the page can scroll AND a
+ * user-gesture scrolls it. We've made the body 1 px taller than the
+ * viewport in CSS; here we nudge the scroll position to 1 on the first
+ * user touch so Chrome takes the hint. iOS Safari is less reliable about
+ * this but it doesn't hurt — the scroll is a single px, invisible to
+ * the player.
+ *
+ * Runs once per page load and removes itself afterwards.
+ */
+function bindUrlBarHider(): void {
+  if (typeof window === "undefined") return;
+  const onFirstTouch = () => {
+    window.scrollTo({ top: 1, left: 0, behavior: "instant" });
+    window.removeEventListener("touchstart", onFirstTouch);
+    window.removeEventListener("pointerdown", onFirstTouch);
+  };
+  window.addEventListener("touchstart", onFirstTouch, { passive: true });
+  window.addEventListener("pointerdown", onFirstTouch, { passive: true });
+}
+
 void ensureUiFontReady().then(() => {
   let game: Phaser.Game | null = null;
 
@@ -122,4 +143,5 @@ void ensureUiFontReady().then(() => {
 
   syncGameWithOrientation();
   portraitQuery?.addEventListener("change", syncGameWithOrientation);
+  bindUrlBarHider();
 });
