@@ -15,3 +15,9 @@ tsconfig.tsbuildinfo
 # public/assets/. Keep these out of git so the repo stays small.
 /images/
 /public/assets/_placeholders_bak/
+
+# Authoring-only material (image-generation prompts + sample renders) —
+# useful locally for re-generating art, but not needed by the runtime
+# build or by the deployed site.
+/prompts/
+/examples/
