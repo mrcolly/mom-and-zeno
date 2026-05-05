@@ -32,15 +32,9 @@ jobs:
           node-version: "20"
           cache: "npm"
 
-      # Verbose, network-noise-free install with a hard timeout. If npm ci stalls
-      # again we want it to fail fast (3 min) and dump the last few log lines
-      # instead of hanging the runner for hours.
       - name: Install dependencies
         timeout-minutes: 3
-        run: |
-          npm config set fund false
-          npm config set audit false
-          npm ci --loglevel=verbose --no-audit --no-fund
+        run: npm ci --no-audit --no-fund
 
       - name: Build
         timeout-minutes: 3
