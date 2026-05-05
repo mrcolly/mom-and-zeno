@@ -16,6 +16,11 @@ tsconfig.tsbuildinfo
 /images/
 /public/assets/_placeholders_bak/
 
+# Raw sound drops (Freesound packs etc.) — processed copies live under
+# public/assets/audio/. Keep the originals out of git so we don't ship
+# the same files twice and the repo stays small.
+/sounds/
+
 # Authoring-only material (image-generation prompts + sample renders) —
 # useful locally for re-generating art, but not needed by the runtime
 # build or by the deployed site.

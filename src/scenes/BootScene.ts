@@ -8,6 +8,7 @@ import {
   obstacleTextureKey,
   type ObstacleKind,
 } from "../sprites";
+import { SFX_FILES } from "../audio";
 
 /**
  * Dev-only shortcuts: `?dev=<key>` in the URL boots straight into a later
@@ -128,6 +129,12 @@ export class BootScene extends Phaser.Scene {
           `assets/obstacles/${kind}/${i}.png`,
         );
       }
+    }
+
+    // SFX. Texture-key parity with `Sfx.*` in `audio.ts` is enforced by
+    // iterating the same manifest used to play them in scenes.
+    for (const [key, path] of Object.entries(SFX_FILES)) {
+      this.load.audio(key, path);
     }
 
     // Backgrounds.

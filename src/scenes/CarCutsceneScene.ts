@@ -2,13 +2,24 @@ import Phaser from "phaser";
 import { GAME_HEIGHT, GAME_WIDTH } from "../constants";
 import { DialogueOverlay } from "../ui/DialogueOverlay";
 import { carCallDialogue } from "../dialogue";
+import { Sfx, fadeOutAndStop, fadeVolume } from "../audio";
 
 const CAR_Y = GAME_HEIGHT - 220;
 const CAR_START_X = -200;
 const CAR_PAUSE_X = GAME_WIDTH / 2;
 const CAR_END_X = GAME_WIDTH + 300;
 
+// Volume targets: the engine sits *under* the dialogue (so it never fights
+// for attention), the phone ring is loud enough to read as the cause of the
+// stop. Adjust here, not at every play-site.
+const ENGINE_VOL_DRIVING = 0.5;
+const ENGINE_VOL_PARKED = 0.18;
+const PHONE_VOL = 0.85;
+
 export class CarCutsceneScene extends Phaser.Scene {
+  private engine?: Phaser.Sound.BaseSound;
+  private phone?: Phaser.Sound.BaseSound;
+
   constructor() {
     super("CarCutsceneScene");
   }
@@ -33,6 +44,14 @@ export class CarCutsceneScene extends Phaser.Scene {
     const car = this.add.image(CAR_START_X, CAR_Y, "car");
     car.setScale(1);
 
+    // Engine bed comes up as the car drives in. Phone ringing waits until
+    // the car has parked (`startDialogue`) so the cause-and-effect reads:
+    // car arrives → phone rings → mom answers. Both sounds are looped and
+    // torn down on scene shutdown by Phaser's sound manager.
+    this.engine = this.sound.add(Sfx.CarEngine, { loop: true, volume: 0 });
+    this.engine.play();
+    fadeVolume(this, this.engine, ENGINE_VOL_DRIVING, 500);
+
     // Drive in, pause for dialogue, drive out.
     this.tweens.add({
       targets: car,
@@ -54,10 +73,20 @@ export class CarCutsceneScene extends Phaser.Scene {
       ease: "Sine.easeInOut",
     });
 
-    // Beat 1 (pre-talk): hold ~800 ms with the car visibly parked before
-    // the dialogue overlay pops in, so the player has time to register the
-    // scene (street, idling car) before any text demands their attention.
-    this.time.delayedCall(800, () => {
+    // Phone starts ringing now (car is parked). The hold below is sized
+    // so the player hears at least one audible ring pattern before mom
+    // "answers" — the source clip's first ring lands ~150 ms in, and a
+    // 1.4 s wait covers it comfortably.
+    this.phone = this.sound.add(Sfx.Phone, { loop: true, volume: 0 });
+    this.phone.play();
+    fadeVolume(this, this.phone, PHONE_VOL, 200);
+
+    this.time.delayedCall(1400, () => {
+      // Mom answers: phone ring fades out, engine drops to a quieter idle
+      // so the dialogue can sit clearly above it.
+      if (this.phone) fadeOutAndStop(this, this.phone, 350);
+      if (this.engine) fadeVolume(this, this.engine, ENGINE_VOL_PARKED, 500);
+
       const dialogue = new DialogueOverlay(this, carCallDialogue);
       dialogue.once("complete", () => this.endDialogue(car, wobble));
     });
@@ -72,12 +101,20 @@ export class CarCutsceneScene extends Phaser.Scene {
     this.time.delayedCall(900, () => {
       wobble.stop();
       car.y = CAR_Y;
+      // Engine ramps back up as she puts it in gear. Sells the "she's
+      // pulling away" beat without needing extra art.
+      if (this.engine) fadeVolume(this, this.engine, ENGINE_VOL_DRIVING, 400);
       this.tweens.add({
         targets: car,
         x: CAR_END_X,
         duration: 1400,
         ease: "Sine.easeIn",
-        onComplete: () => this.scene.start("RaceScene"),
+        onComplete: () => {
+          // Fade engine out *before* scene transition so the next scene
+          // (RaceScene) doesn't get a hard cut from the car's audio bed.
+          if (this.engine) fadeOutAndStop(this, this.engine, 400);
+          this.time.delayedCall(420, () => this.scene.start("RaceScene"));
+        },
       });
     });
   }

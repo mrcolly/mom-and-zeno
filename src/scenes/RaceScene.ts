@@ -21,6 +21,7 @@ import {
   obstacleTextureKey,
   spriteCenterYForFeet,
 } from "../sprites";
+import { Sfx, fadeOutAndStop, fadeVolume } from "../audio";
 import { getSafeArea } from "../viewport";
 
 /** Same touch check we use in main.ts: any finger-input capable device. */
@@ -88,6 +89,10 @@ export class RaceScene extends Phaser.Scene {
   private finished = false;
   private startedAt = 0;
   private keys?: Keys;
+  /** Looped footsteps sample, faded in on race start, faded out on
+   * race end. One shared loop covers all runners (mixing 4 footsteps
+   * tracks would be a cacophony). */
+  private footsteps?: Phaser.Sound.BaseSound;
 
   constructor() {
     super("RaceScene");
@@ -233,6 +238,13 @@ export class RaceScene extends Phaser.Scene {
       // AI runners briefly idle until their first scheduled tap fires.
       runner.animMode = null;
     }
+
+    // Footsteps loop fades in here (rather than on scene create) so the
+    // intro overlay sits in silence; the moment the player hits GO the
+    // running starts. Single shared loop covers all four runners.
+    this.footsteps = this.sound.add(Sfx.Footsteps, { loop: true, volume: 0 });
+    this.footsteps.play();
+    fadeVolume(this, this.footsteps, 0.55, 350);
   }
 
   private bindKeyboard() {
@@ -518,6 +530,13 @@ export class RaceScene extends Phaser.Scene {
     runner.isJumping = true;
     runner.sprite.play({ key: animKey(runner.charKey, Anim.Jump), repeat: 0 });
     runner.animMode = "jump";
+    // Only mom's jumps get the SFX — four simultaneous jump sounds when the
+    // AI all clear an obstacle would just be noise. Mom's jumps are also
+    // the only ones the player explicitly initiates, so the audio feedback
+    // tracks player input one-to-one.
+    if (runner.isMom) {
+      this.sound.play(Sfx.Jump, { volume: 0.7 });
+    }
     this.tweens.add({
       targets: runner.sprite,
       y: runner.baseY - RACE.jumpHeight,
@@ -635,6 +654,10 @@ export class RaceScene extends Phaser.Scene {
 
     if (runner.isMom) {
       this.cameras.main.shake(150, 0.005);
+      // Bonk only on mom's hits — the AI's stumbles already get a velocity
+      // penalty + sprite flash, but adding audio for them would mean a
+      // bonk every couple of seconds even when the player is doing fine.
+      this.sound.play(Sfx.Bonk, { volume: 0.8 });
     }
     const flashSteps = 3;
     this.tweens.add({
@@ -657,6 +680,14 @@ export class RaceScene extends Phaser.Scene {
   private endRace(momWon: boolean) {
     if (this.finished) return;
     this.finished = true;
+
+    // Fade footsteps out as everyone crosses the line — a hard cut here
+    // reads as a glitch ("did the audio break?"). 600 ms is long enough
+    // to feel intentional, short enough to not stomp the next scene.
+    if (this.footsteps) {
+      fadeOutAndStop(this, this.footsteps, 600);
+      this.footsteps = undefined;
+    }
 
     const elapsed = ((this.time.now - this.startedAt) / 1000).toFixed(1);
 

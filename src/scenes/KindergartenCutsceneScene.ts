@@ -7,6 +7,7 @@ import {
   kindergartenZenoDialogue,
   kindergartenZenoPuzzettaDialogue,
 } from "../dialogue";
+import { Sfx } from "../audio";
 import {
   Anim,
   Char,
@@ -267,13 +268,27 @@ export class KindergartenCutsceneScene extends Phaser.Scene {
 
   /** Second overlay: Zeno's confession + mom's reaction. After it closes
    * we let the hug + jump animation breathe one more cycle before cutting
-   * to the credits-style "Buona Festa della Mamma" scene. */
+   * to the credits-style "Buona Festa della Mamma" scene.
+   *
+   * Comedic timing: silence → fart → dialogue ("Ho fatto una puzzetta").
+   * The fart plays first IN the silence, ends, and only THEN does Zeno
+   * "explain" what just happened. Showing the line on top of the fart
+   * sound would soften the punchline.
+   *
+   * Audible portion of the source clip ends ~1.0 s in (the file is 1.7 s
+   * total but trails off into near-silence after the burst). We hold a
+   * full 1.6 s before the dialogue lands, so the player gets ~600 ms of
+   * silence after the fart for the punchline beat to register before
+   * Zeno's confession types in. */
   private runPuzzettaDialogue() {
-    const dlg = new DialogueOverlay(this, kindergartenZenoPuzzettaDialogue);
-    dlg.once("complete", () => {
-      this.time.delayedCall(1800, () =>
-        this.scene.start("HappyMothersDayScene"),
-      );
+    this.sound.play(Sfx.Fart, { volume: 0.9 });
+    this.time.delayedCall(1600, () => {
+      const dlg = new DialogueOverlay(this, kindergartenZenoPuzzettaDialogue);
+      dlg.once("complete", () => {
+        this.time.delayedCall(1800, () =>
+          this.scene.start("HappyMothersDayScene"),
+        );
+      });
     });
   }
 }
