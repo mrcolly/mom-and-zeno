@@ -143,6 +143,54 @@ export const RACER_STATS: Readonly<Partial<Record<Char, RacerStats>>> = {
   },
 };
 
+/**
+ * Obstacle art lives under `public/assets/obstacles/<kind>/<idx>.png`. Each
+ * kind ships several visual variants so that a single race doesn't show the
+ * same brown brick over and over. RaceScene picks one at random per spawn.
+ */
+export const ObstacleKind = {
+  ToyCar: "toy_car",
+  Shoe: "shoe",
+  Bicycle: "bicycle",
+  TeddyBear: "teddy_bear",
+  Newborn: "newborn",
+} as const;
+export type ObstacleKind = (typeof ObstacleKind)[keyof typeof ObstacleKind];
+
+/** How many variants per kind exist on disk. Update if more art is added. */
+export const OBSTACLE_VARIANTS: Readonly<Record<ObstacleKind, number>> = {
+  [ObstacleKind.ToyCar]: 4,
+  [ObstacleKind.Shoe]: 4,
+  [ObstacleKind.Bicycle]: 4,
+  [ObstacleKind.TeddyBear]: 4,
+  [ObstacleKind.Newborn]: 4,
+};
+
+/**
+ * On-screen height (in canvas px) for each obstacle kind. Width is computed at
+ * spawn time from the texture's aspect ratio so things keep their natural
+ * proportions (a shoe stays wide-and-flat, a newborn stays narrow-and-tall).
+ *
+ * Tuning rules:
+ *   - Real-world ordering: shoe < newborn < teddy < toy-car < bicycle.
+ *   - All values MUST stay below `RACE.jumpHeight` (70 px) so every obstacle
+ *     is clearable; we leave a few pixels of headroom for the runner's feet.
+ *   - The AI clearance check still keys off `RACE.obstacleHeight`, so making
+ *     the visual taller doesn't change race difficulty — only how much the
+ *     sprite can clip the runner's silhouette when they barely make the jump.
+ */
+export const OBSTACLE_HEIGHTS: Readonly<Record<ObstacleKind, number>> = {
+  [ObstacleKind.Shoe]: 80,
+  [ObstacleKind.Newborn]: 90,
+  [ObstacleKind.TeddyBear]: 100,
+  [ObstacleKind.ToyCar]: 110,
+  [ObstacleKind.Bicycle]: 120,
+};
+
+/** `obstacle_<kind>_<idx>` — texture key registered by BootScene. */
+export const obstacleTextureKey = (kind: ObstacleKind, idx: number): string =>
+  `obstacle_${kind}_${idx}`;
+
 export const SPRITE_ANIMS: readonly SpriteAnimDef[] = [
   { char: Char.Mom, anim: Anim.Run, frames: 8, fps: 14, repeat: -1 },
   { char: Char.Mom, anim: Anim.Jump, frames: 8, fps: 14, repeat: 0 },

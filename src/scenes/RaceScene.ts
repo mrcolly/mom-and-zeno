@@ -11,9 +11,13 @@ import {
   Anim,
   Char,
   CHAR_DISPLAY,
+  OBSTACLE_HEIGHTS,
+  OBSTACLE_VARIANTS,
+  ObstacleKind,
   RACER_STATS,
   animKey,
   frameKey,
+  obstacleTextureKey,
   spriteCenterYForFeet,
 } from "../sprites";
 import { getSafeArea } from "../viewport";
@@ -47,6 +51,10 @@ type Runner = {
   nextObstacleIdx: number;
   // Whether the runner has already chosen jump-or-not for the upcoming obstacle.
   upcomingDecided: boolean;
+  // Set on the frame the runner clips the current obstacle so the hit
+  // applies once even though the runner spends several frames inside the
+  // obstacle's hitbox. Cleared when they exit past `obs.x + obstacleWidth/2`.
+  hitOnCurrent: boolean;
   // AI only.
   nextTapAt?: number;
   tapInterval?: number;
@@ -59,7 +67,7 @@ type Keys = {
 };
 
 type Obstacle = {
-  rect: Phaser.GameObjects.Rectangle;
+  image: Phaser.GameObjects.Image;
   x: number;
   lane: number;
 };
@@ -272,6 +280,7 @@ export class RaceScene extends Phaser.Scene {
         animMode: null,
         nextObstacleIdx: 0,
         upcomingDecided: false,
+        hitOnCurrent: false,
       };
 
       if (!isMom) {
@@ -308,6 +317,17 @@ export class RaceScene extends Phaser.Scene {
     const binSize = span / RACE.obstaclesPerLane;
     const padding = RACE.obstacleWidth * 2;
 
+    // Pre-flatten the available (kind, variant) pairs so each spawn is just
+    // one Phaser.Math.Between roll. Each kind has its own on-screen height
+    // (shoe < newborn < teddy < car < bike) so a shoe doesn't read as the
+    // same size as a bicycle. Width follows the texture's aspect ratio.
+    const variants: Array<{ kind: ObstacleKind; idx: number }> = [];
+    for (const [kind, count] of Object.entries(OBSTACLE_VARIANTS)) {
+      for (let i = 0; i < count; i++) {
+        variants.push({ kind: kind as ObstacleKind, idx: i });
+      }
+    }
+
     for (let lane = 0; lane < RACE.laneCount; lane++) {
       const laneObstacles: Obstacle[] = [];
       for (let i = 0; i < RACE.obstaclesPerLane; i++) {
@@ -315,17 +335,18 @@ export class RaceScene extends Phaser.Scene {
         const lo = Math.floor(binStart + padding);
         const hi = Math.floor(binStart + binSize - padding);
         const x = Phaser.Math.Between(lo, hi);
-        const rect = this.add
-          .rectangle(
-            x,
-            RACE.floorY,
-            RACE.obstacleWidth,
-            RACE.obstacleHeight,
-            COLORS.obstacle,
-          )
-          .setStrokeStyle(2, 0x000000)
-          .setOrigin(0.5, 1);
-        laneObstacles.push({ rect, x, lane });
+        const v = variants[Phaser.Math.Between(0, variants.length - 1)];
+        const tex = obstacleTextureKey(v.kind, v.idx);
+        const src = this.textures.get(tex).getSourceImage() as
+          | HTMLImageElement
+          | HTMLCanvasElement;
+        const aspect = src.width / src.height;
+        const displayH = OBSTACLE_HEIGHTS[v.kind];
+        const image = this.add
+          .image(x, RACE.floorY, tex)
+          .setOrigin(0.5, 1)
+          .setDisplaySize(displayH * aspect, displayH);
+        laneObstacles.push({ image, x, lane });
       }
       this.obstaclesByLane.push(laneObstacles);
     }
@@ -543,16 +564,25 @@ export class RaceScene extends Phaser.Scene {
       }
     }
 
-    // Resolve the obstacle when the runner crosses its x position. They either
-    // sail over it (above the threshold y) or take a hit.
-    if (runner.sprite.x >= obs.x) {
+    // Resolve the obstacle as the runner sweeps across its hitbox width.
+    // We poll every frame the runner is inside [enterX, exitX]; if their
+    // sprite is ever below the clearance threshold, they nick the obstacle.
+    // `hitOnCurrent` flags the obstacle as resolved so a single graze counts
+    // exactly once even when the runner spends multiple frames inside it.
+    const halfW = RACE.obstacleWidth / 2;
+    const enterX = obs.x - halfW;
+    const exitX = obs.x + halfW;
+    if (runner.sprite.x >= enterX && runner.sprite.x <= exitX) {
       const aboveObstacle =
         runner.sprite.y < runner.baseY - RACE.obstacleHeight + 4;
-      if (!aboveObstacle) {
+      if (!aboveObstacle && !runner.hitOnCurrent) {
         this.applyHit(runner, obs);
+        runner.hitOnCurrent = true;
       }
+    } else if (runner.sprite.x > exitX) {
       runner.nextObstacleIdx += 1;
       runner.upcomingDecided = false;
+      runner.hitOnCurrent = false;
     }
   }
 
@@ -573,7 +603,7 @@ export class RaceScene extends Phaser.Scene {
       repeat: flashSteps - 1,
       onComplete: () => runner.sprite.setAlpha(1),
     });
-    obs.rect.setFillStyle(COLORS.accentDark);
+    obs.image.setTint(0x666666);
   }
 
   private endRace(momWon: boolean) {

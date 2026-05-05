@@ -1,6 +1,13 @@
 import Phaser from "phaser";
 import { GAME_HEIGHT, GAME_WIDTH, COLORS, FONT_FAMILY } from "../constants";
-import { SPRITE_ANIMS, animKey, frameKey } from "../sprites";
+import {
+  OBSTACLE_VARIANTS,
+  SPRITE_ANIMS,
+  animKey,
+  frameKey,
+  obstacleTextureKey,
+  type ObstacleKind,
+} from "../sprites";
 
 /**
  * Loads every asset in one place; later scenes assume the texture keys here
@@ -74,6 +81,17 @@ export class BootScene extends Phaser.Scene {
       "assets/portraits/teacher_portrait.png",
     );
     this.load.image("zeno_portrait", "assets/portraits/zeno_portrait.png");
+
+    // Obstacles. Each kind has several variants so the race doesn't repeat
+    // the same brick over and over; RaceScene picks one at random per spawn.
+    for (const [kind, count] of Object.entries(OBSTACLE_VARIANTS)) {
+      for (let i = 0; i < count; i++) {
+        this.load.image(
+          obstacleTextureKey(kind as ObstacleKind, i),
+          `assets/obstacles/${kind}/${i}.png`,
+        );
+      }
+    }
 
     // Backgrounds.
     this.load.image("bg_street", "assets/backgrounds/street.png");

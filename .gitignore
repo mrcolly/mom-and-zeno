@@ -21,3 +21,8 @@ tsconfig.tsbuildinfo
 # build or by the deployed site.
 /prompts/
 /examples/
+
+# One-shot asset processing scripts + their scratch dirs. Kept locally to
+# re-process new obstacle drops; not needed by the build or deployed site.
+/scripts/process-obstacles.mjs
+/.obstacle_staging/

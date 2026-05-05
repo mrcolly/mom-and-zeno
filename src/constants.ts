@@ -14,7 +14,6 @@ export const COLORS = {
   buttonHover: 0xfda4af,
   buttonShadow: 0x6e1c2c,
   buttonStroke: 0x000000,
-  obstacle: 0x6b3f1a,
   finishLine: 0xffeb3b,
   ground: 0x8d6e4a,
   groundShadow: 0x6e553a,
@@ -61,10 +60,11 @@ export const RACE = {
   // Visual-only stun. Input is NEVER blocked; the player can always tap to recover.
   hitFlashMs: 250,
 
-  // Jump tuning - shallow arc, just tall enough to clear the obstacles
-  // (`obstacleHeight` + a few pixels of margin via the clearance check in
-  // RaceScene). Bigger jumps look cartoonish on the new larger sprites.
-  jumpHeight: 70,
+  // Jump tuning. The arc has to clear the *visible* top of the tallest
+  // obstacle (bicycle ≈ 120 px tall after rendering), so the apex sits a bit
+  // above that. Half-duration (300 ms) is the time-to-peak the AI plans
+  // around in `handleObstaclesFor`.
+  jumpHeight: 130,
   jumpDurationMs: 600,
 
   // Obstacle layout (per lane, identical count across lanes).
@@ -73,7 +73,12 @@ export const RACE = {
   // so the finish line is clean.
   obstacleStartBuffer: 800,
   obstacleEndBuffer: 400,
-  obstacleWidth: 36,
+  // Hitbox is uniform across all obstacle kinds (visuals can extend above
+  // and beside it, see OBSTACLE_HEIGHTS). The width is what makes timing
+  // matter: a runner has to stay above `obstacleHeight` for the full
+  // horizontal span centered on the spawn x — a half-jump clearing only the
+  // centerline now nicks the trailing edge.
+  obstacleWidth: 60,
   obstacleHeight: 30,
 
   // Per-character speed and jump-skill stats live in `RACER_STATS` (sprites.ts).

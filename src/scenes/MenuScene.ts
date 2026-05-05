@@ -2,6 +2,34 @@ import Phaser from "phaser";
 import { GAME_HEIGHT, GAME_WIDTH, COLORS, FONT_FAMILY } from "../constants";
 import { createButton } from "../ui/Button";
 
+/** Same touch check we use in main.ts: any finger-input capable device. */
+function isTouchDevice(): boolean {
+  if (typeof window === "undefined") return false;
+  return "ontouchstart" in window || navigator.maxTouchPoints > 0;
+}
+
+/**
+ * Best-effort enter-fullscreen for mobile. No-ops (silently) on:
+ *   - desktops (we don't want fullscreen there),
+ *   - already-fullscreen documents,
+ *   - browsers that disable fullscreen for non-video elements (iPhone
+ *     Safari) — `document.fullscreenEnabled` is false there.
+ *
+ * Where the request *is* attempted we attach `.catch()` so a denied
+ * permission (e.g. Chrome's devtools mobile emulator) doesn't print an
+ * unhandled-rejection warning in the console.
+ */
+function requestMobileFullscreen(scene: Phaser.Scene): void {
+  if (!isTouchDevice()) return;
+  if (typeof document === "undefined" || !document.fullscreenEnabled) return;
+  if (document.fullscreenElement) return;
+  const parent = scene.scale.parent as HTMLElement | null;
+  const target = parent ?? scene.game.canvas;
+  // requestFullscreen returns a Promise in modern browsers; legacy ones may
+  // return undefined. Optional chaining handles both shapes.
+  void target?.requestFullscreen?.()?.catch(() => {});
+}
+
 /**
  * Title screen.
  *
@@ -68,7 +96,18 @@ export class MenuScene extends Phaser.Scene {
       width: 360,
       height: 110,
       fontSize: 44,
-      onClick: () => this.scene.start("CarCutsceneScene"),
+      onClick: () => {
+        // Mobile-only fullscreen: a user gesture is required, and this
+        // button click is one. We bypass `this.scale.startFullscreen()`
+        // because Phaser swallows the underlying `requestFullscreen()`
+        // promise — its rejection (e.g. iPhone Safari, which only allows
+        // fullscreen on <video>; or Chrome's devtools mobile emulator)
+        // would otherwise surface as "Uncaught (in promise) TypeError:
+        // Permissions check failed". We feature-detect first and attach
+        // .catch() so the game starts cleanly either way.
+        requestMobileFullscreen(this);
+        this.scene.start("CarCutsceneScene");
+      },
     });
 
     this.add
