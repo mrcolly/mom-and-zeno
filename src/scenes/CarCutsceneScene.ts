@@ -54,8 +54,22 @@ export class CarCutsceneScene extends Phaser.Scene {
       ease: "Sine.easeInOut",
     });
 
-    const dialogue = new DialogueOverlay(this, carCallDialogue);
-    dialogue.once("complete", () => {
+    // Beat 1 (pre-talk): hold ~800 ms with the car visibly parked before
+    // the dialogue overlay pops in, so the player has time to register the
+    // scene (street, idling car) before any text demands their attention.
+    this.time.delayedCall(800, () => {
+      const dialogue = new DialogueOverlay(this, carCallDialogue);
+      dialogue.once("complete", () => this.endDialogue(car, wobble));
+    });
+  }
+
+  private endDialogue(
+    car: Phaser.GameObjects.Image,
+    wobble: Phaser.Tweens.Tween,
+  ) {
+    // Post-talk beat: a beat after the last tap so the conversation can
+    // sit for a moment instead of cutting straight into the drive-off.
+    this.time.delayedCall(900, () => {
       wobble.stop();
       car.y = CAR_Y;
       this.tweens.add({

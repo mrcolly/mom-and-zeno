@@ -92,14 +92,18 @@ export class KindergartenCutsceneScene extends Phaser.Scene {
 
     // Let the player breathe in the classroom for a beat — see the idle
     // animations of mom + teacher — before the dialogue overlay pops in
-    // and swallows the screen. 2.5 s is long enough to register the scene
+    // and swallows the screen. 3 s is long enough to register the scene
     // and the characters' identities before any text starts.
-    this.time.delayedCall(2500, () => this.startTeacherDialogue());
+    this.time.delayedCall(3000, () => this.startTeacherDialogue());
   }
 
   private startTeacherDialogue() {
     const dlg = new DialogueOverlay(this, kindergartenTeacherDialogue);
-    dlg.once("complete", () => this.teacherFetchesZeno());
+    dlg.once("complete", () => {
+      // Post-talk beat: ~900 ms before the teacher heads off, so the last
+      // line can land instead of cutting straight to her walking away.
+      this.time.delayedCall(900, () => this.teacherFetchesZeno());
+    });
   }
 
   private teacherFetchesZeno() {
@@ -196,9 +200,16 @@ export class KindergartenCutsceneScene extends Phaser.Scene {
     // Hold the silent hug for a beat before the final dialogue lands —
     // the moment of reunion is the emotional peak, so let it breathe
     // instead of cutting straight into text.
-    this.time.delayedCall(1500, () => {
+    this.time.delayedCall(2200, () => {
       const dlg = new DialogueOverlay(this, kindergartenZenoDialogue);
-      dlg.once("complete", () => this.scene.start("HappyMothersDayScene"));
+      dlg.once("complete", () => {
+        // Post-talk beat before the credits-style "Buona Festa della
+        // Mamma" scene, so Zeno's last line sinks in. ~1.8 s lets the
+        // hug + jump animation play out one more cycle before the cut.
+        this.time.delayedCall(1800, () =>
+          this.scene.start("HappyMothersDayScene"),
+        );
+      });
     });
   }
 }
