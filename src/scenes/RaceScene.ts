@@ -174,11 +174,11 @@ export class RaceScene extends Phaser.Scene {
     // don't get a phantom mention of buttons that aren't on their screen.
     const controlLines = isTouchDevice()
       ? [
-          "CORRI: pigia velocemente il tasto CORRI",
-          "SALTA: tocca il tasto SALTA",
+          "CORRI: premi velocemente il tasto CORRI",
+          "SALTA: premi il tasto SALTA",
         ]
       : [
-          "CORRI: pigia velocemente FRECCIA DESTRA / D / J",
+          "CORRI: premi velocemente FRECCIA DESTRA / D / J",
           "SALTA: premi SPAZIO / FRECCIA SU / W",
         ];
 
