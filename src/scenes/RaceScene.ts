@@ -603,7 +603,13 @@ export class RaceScene extends Phaser.Scene {
       repeat: flashSteps - 1,
       onComplete: () => runner.sprite.setAlpha(1),
     });
-    obs.image.setTint(0x666666);
+    // Darken the obstacle only when *mom* trips on it: it acts as a
+    // breadcrumb of where the player has already lost time. AI trips don't
+    // need that feedback (and would otherwise leave a confusing trail of
+    // dark sprites the player never bumped into).
+    if (runner.isMom) {
+      obs.image.setTint(0x666666);
+    }
   }
 
   private endRace(momWon: boolean) {
