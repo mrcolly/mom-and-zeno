@@ -96,18 +96,22 @@ export class MenuScene extends Phaser.Scene {
       width: 360,
       height: 110,
       fontSize: 44,
-      onClick: () => {
-        // Mobile-only fullscreen: a user gesture is required, and this
-        // button click is one. We bypass `this.scale.startFullscreen()`
-        // because Phaser swallows the underlying `requestFullscreen()`
-        // promise — its rejection (e.g. iPhone Safari, which only allows
-        // fullscreen on <video>; or Chrome's devtools mobile emulator)
-        // would otherwise surface as "Uncaught (in promise) TypeError:
-        // Permissions check failed". We feature-detect first and attach
-        // .catch() so the game starts cleanly either way.
-        requestMobileFullscreen(this);
-        this.scene.start("CarCutsceneScene");
-      },
+      onClick: () => this.scene.start("CarCutsceneScene"),
+    });
+
+    // Mobile fullscreen MUST be requested synchronously inside the user
+    // gesture's call stack. Phaser's `setInteractive` button defers click
+    // callbacks to the next frame's input pump, by which time browsers
+    // (Chrome on Android in particular) consider the user activation
+    // expired for fullscreen purposes — the promise rejects with
+    // "Permissions check failed" and the screen never expands. So we
+    // listen for `pointerdown` natively on the canvas and trigger the
+    // request from there. Runs once; removes itself on scene shutdown.
+    const canvas = this.game.canvas;
+    const onFirstTap = () => requestMobileFullscreen(this);
+    canvas.addEventListener("pointerdown", onFirstTap, { once: true });
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      canvas.removeEventListener("pointerdown", onFirstTap);
     });
 
     this.add
