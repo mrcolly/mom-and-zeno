@@ -1,0 +1,20 @@
+{
+  "name": "mom-and-zeno",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview --host",
+    "gen:assets": "node scripts/generate-placeholders.mjs"
+  },
+  "dependencies": {
+    "phaser": "^3.80.1"
+  },
+  "devDependencies": {
+    "pngjs": "^7.0.0",
+    "typescript": "^5.5.4",
+    "vite": "^5.4.2"
+  }
+}

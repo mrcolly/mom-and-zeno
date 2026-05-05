@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no"
+    />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="theme-color" content="#1a1a2e" />
+    <title>Mom &amp; Zeno</title>
+
+    <!-- UI font. Phaser caches text textures, so the font must be loaded
+         before the first scene renders — `main.ts` awaits document.fonts.ready
+         before booting the game. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap"
+    />
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        /* If the player holds the phone vertically, the rotate-prompt below
+           covers the screen — but the body still shows through during boot
+           and around the prompt. Using the splash artwork as the page
+           background keeps the empty area in the same visual world as the
+           game, with a dark wash to keep contrast. */
+        background:
+          linear-gradient(
+            rgba(26, 26, 46, 0.72),
+            rgba(26, 26, 46, 0.72)
+          ),
+          url("./assets/backgrounds/splash.png") center center / cover no-repeat
+            fixed;
+        background-color: #1a1a2e;
+        overflow: hidden;
+        height: 100%;
+        width: 100%;
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: transparent;
+        user-select: none;
+        -webkit-user-select: none;
+        font-family:
+          "Fredoka",
+          "Quicksand",
+          "Helvetica Neue",
+          sans-serif;
+        color: #ffffff;
+      }
+
+      #game {
+        width: 100vw;
+        /* `100dvh` follows the visible viewport height (excluding the
+           browser URL/tab bar on iOS Safari), so the centered canvas
+           actually lands in the middle of what the user can see. The
+           `100vh` line is a static fallback for browsers that don't
+           support dvh; the dvh declaration below it wins where it does. */
+        height: 100vh;
+        height: 100dvh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      canvas {
+        display: block;
+        box-shadow: 0 12px 48px rgba(0, 0, 0, 0.55);
+        border-radius: 4px;
+      }
+
+      /* The rotate-prompt is a DOM overlay (NOT a Phaser scene), so it can
+         live independently of the game lifecycle. It fills the viewport in
+         portrait on touch devices and is hidden everywhere else. The Phaser
+         game gets created/destroyed in main.ts based on the same media query
+         so the canvas is never live in portrait. */
+      #rotate-prompt {
+        position: fixed;
+        inset: 0;
+        z-index: 1000;
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 24px;
+        background: rgba(26, 26, 46, 0.92);
+        text-align: center;
+        padding: 32px;
+        box-sizing: border-box;
+      }
+
+      #rotate-prompt .rotate-icon {
+        width: 96px;
+        height: 96px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 64px;
+        color: #ffffff;
+        animation: rotate-hint 2.4s ease-in-out infinite;
+      }
+
+      #rotate-prompt p {
+        margin: 0;
+        font-size: 22px;
+        font-weight: 500;
+        line-height: 1.4;
+        max-width: 320px;
+        color: #ffffff;
+      }
+
+      @keyframes rotate-hint {
+        0% {
+          transform: rotate(0deg);
+        }
+        45% {
+          transform: rotate(-90deg);
+        }
+        65% {
+          transform: rotate(-90deg);
+        }
+        100% {
+          transform: rotate(0deg);
+        }
+      }
+
+      /* Show the prompt and hide the game container only on touch devices
+         held vertically. Desktop browsers in tall windows get the canvas
+         pillarboxed via FIT — they're not the target audience for the
+         rotate flow. */
+      @media (orientation: portrait) and (pointer: coarse) {
+        #game {
+          display: none;
+        }
+        #rotate-prompt {
+          display: flex;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="game"></div>
+    <div id="rotate-prompt" aria-live="polite">
+      <div class="rotate-icon">↻</div>
+      <p>Ruota il telefono in orizzontale per giocare</p>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

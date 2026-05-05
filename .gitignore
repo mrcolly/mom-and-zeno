@@ -1,0 +1,17 @@
+node_modules
+dist
+dist-ssr
+*.local
+.DS_Store
+.vscode/*
+!.vscode/settings.json
+.idea
+*.log
+
+# TypeScript incremental-build cache — local-only, regenerated on every build.
+tsconfig.tsbuildinfo
+
+# Raw asset drops from the AI image generator. Processed copies live under
+# public/assets/. Keep these out of git so the repo stays small.
+/images/
+/public/assets/_placeholders_bak/

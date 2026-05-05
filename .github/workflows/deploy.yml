@@ -1,0 +1,57 @@
+name: Deploy to GitHub Pages
+
+# Build the Vite site and publish it to GitHub Pages on every push to `main`.
+# The workflow can also be run manually from the Actions tab.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# A single in-flight deployment is enough; cancel any older runs that are
+# still queued so we never publish a stale build over a newer one.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+# Default-deny permissions; the jobs below opt in to exactly what they need.
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
