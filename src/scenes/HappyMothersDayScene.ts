@@ -33,7 +33,7 @@ export class HappyMothersDayScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     this.add
-      .text(GAME_WIDTH / 2, GAME_HEIGHT / 2 + 80, "Con amore, Zeno", {
+      .text(GAME_WIDTH / 2, GAME_HEIGHT / 2 + 80, "Con amore, Zeno e Papà", {
         fontFamily: FONT_FAMILY,
         fontSize: "36px",
         color: COLORS.textLight,

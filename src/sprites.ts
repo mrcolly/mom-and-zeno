@@ -181,10 +181,26 @@ export const OBSTACLE_VARIANTS: Readonly<Record<ObstacleKind, number>> = {
  */
 export const OBSTACLE_HEIGHTS: Readonly<Record<ObstacleKind, number>> = {
   [ObstacleKind.Shoe]: 80,
-  [ObstacleKind.Newborn]: 90,
+  [ObstacleKind.Newborn]: 100,
   [ObstacleKind.TeddyBear]: 100,
   [ObstacleKind.ToyCar]: 110,
   [ObstacleKind.Bicycle]: 120,
+};
+
+/**
+ * Per-kind spawn weight used by `RaceScene.spawnObstacles` for the
+ * weighted-random kind pick. Relative, not absolute — `1.0` is the
+ * baseline, so a value of `0.3` means "appears at ~30% of the rate of a
+ * baseline obstacle". Newborns are intentionally rarer than the rest:
+ * they're the most jarring image to see strewn across a sidewalk and
+ * landing one in every fifth slot reads as cartoony in the wrong way.
+ */
+export const OBSTACLE_WEIGHTS: Readonly<Record<ObstacleKind, number>> = {
+  [ObstacleKind.Shoe]: 1,
+  [ObstacleKind.TeddyBear]: 1,
+  [ObstacleKind.ToyCar]: 1,
+  [ObstacleKind.Bicycle]: 1,
+  [ObstacleKind.Newborn]: 0.3,
 };
 
 /** `obstacle_<kind>_<idx>` — texture key registered by BootScene. */

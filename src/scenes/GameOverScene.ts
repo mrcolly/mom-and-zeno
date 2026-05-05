@@ -30,7 +30,7 @@ export class GameOverScene extends Phaser.Scene {
       .text(
         GAME_WIDTH / 2,
         GAME_HEIGHT / 2 - 40,
-        "Un altro genitore ha preso Zeno prima di te.",
+        "Un altro genitore è entrato prima di te a prendere suo figlio.",
         {
           fontFamily: FONT_FAMILY,
           fontSize: "26px",

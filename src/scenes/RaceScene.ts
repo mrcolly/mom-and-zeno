@@ -13,6 +13,7 @@ import {
   CHAR_DISPLAY,
   OBSTACLE_HEIGHTS,
   OBSTACLE_VARIANTS,
+  OBSTACLE_WEIGHTS,
   ObstacleKind,
   RACER_STATS,
   animKey,
@@ -183,12 +184,11 @@ export class RaceScene extends Phaser.Scene {
         ];
 
     const rulesText = [
-      "Corri contro gli altri genitori per arrivare da Zeno!",
+      "Corri contro gli altri genitori per entrare per prima!",
       "",
       ...controlLines,
       "",
       "Se sbatti contro un ostacolo perdi velocità.",
-      "Vince chi arriva primo al traguardo!",
     ].join("\n");
 
     const rules = this.add
@@ -340,16 +340,31 @@ export class RaceScene extends Phaser.Scene {
     const binSize = span / RACE.obstaclesPerLane;
     const padding = RACE.obstacleWidth * 2;
 
-    // Pre-flatten the available (kind, variant) pairs so each spawn is just
-    // one Phaser.Math.Between roll. Each kind has its own on-screen height
-    // (shoe < newborn < teddy < car < bike) so a shoe doesn't read as the
-    // same size as a bicycle. Width follows the texture's aspect ratio.
-    const variants: Array<{ kind: ObstacleKind; idx: number }> = [];
-    for (const [kind, count] of Object.entries(OBSTACLE_VARIANTS)) {
-      for (let i = 0; i < count; i++) {
-        variants.push({ kind: kind as ObstacleKind, idx: i });
+    // Two-step weighted pick for each spawn slot:
+    //   1. roll a `kind` against `OBSTACLE_WEIGHTS` (so e.g. newborns are
+    //      rarer than shoes/teddies/cars/bikes by design — see comment
+    //      on `OBSTACLE_WEIGHTS` in `sprites.ts`);
+    //   2. roll a variant uniformly within that kind.
+    // Each kind has its own on-screen height (shoe < newborn < teddy <
+    // car < bike) so a shoe doesn't read as the same size as a bicycle.
+    // Width follows the texture's aspect ratio.
+    const kinds = Object.keys(OBSTACLE_WEIGHTS) as ObstacleKind[];
+    const totalWeight = kinds.reduce((sum, k) => sum + OBSTACLE_WEIGHTS[k], 0);
+    const pickKind = (): ObstacleKind => {
+      let roll = Math.random() * totalWeight;
+      for (const k of kinds) {
+        roll -= OBSTACLE_WEIGHTS[k];
+        if (roll <= 0) return k;
       }
-    }
+      return kinds[kinds.length - 1];
+    };
+
+    // Guarantee at least one Newborn somewhere in the level. The weighted
+    // pick alone makes them rare enough that some races spawn zero, which
+    // misses the gag entirely — pre-reserve a single random slot so every
+    // run has at least one baby on the sidewalk.
+    const forcedLane = Phaser.Math.Between(0, RACE.laneCount - 1);
+    const forcedIdx = Phaser.Math.Between(0, RACE.obstaclesPerLane - 1);
 
     for (let lane = 0; lane < RACE.laneCount; lane++) {
       const laneObstacles: Obstacle[] = [];
@@ -358,13 +373,17 @@ export class RaceScene extends Phaser.Scene {
         const lo = Math.floor(binStart + padding);
         const hi = Math.floor(binStart + binSize - padding);
         const x = Phaser.Math.Between(lo, hi);
-        const v = variants[Phaser.Math.Between(0, variants.length - 1)];
-        const tex = obstacleTextureKey(v.kind, v.idx);
+        const kind =
+          lane === forcedLane && i === forcedIdx
+            ? ObstacleKind.Newborn
+            : pickKind();
+        const variantIdx = Phaser.Math.Between(0, OBSTACLE_VARIANTS[kind] - 1);
+        const tex = obstacleTextureKey(kind, variantIdx);
         const src = this.textures.get(tex).getSourceImage() as
           | HTMLImageElement
           | HTMLCanvasElement;
         const aspect = src.width / src.height;
-        const displayH = OBSTACLE_HEIGHTS[v.kind];
+        const displayH = OBSTACLE_HEIGHTS[kind];
         const image = this.add
           .image(x, RACE.floorY, tex)
           .setOrigin(0.5, 1)

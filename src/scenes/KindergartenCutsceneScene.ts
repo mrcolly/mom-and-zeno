@@ -3,7 +3,9 @@ import { GAME_HEIGHT, GAME_WIDTH, RACE } from "../constants";
 import { DialogueOverlay } from "../ui/DialogueOverlay";
 import {
   kindergartenTeacherDialogue,
+  kindergartenTeacherForgotDialogue,
   kindergartenZenoDialogue,
+  kindergartenZenoPuzzettaDialogue,
 } from "../dialogue";
 import {
   Anim,
@@ -48,8 +50,12 @@ const ZENO_TRAIL_OFFSET = 200;
  * `RACE.runnerScale` / `RACE.laneTop` import: every character renders at the
  * same scale and standing height as in the race scene):
  *
- *   1. Mom (left) and teacher (right) idle while the teacher dialogue plays.
- *   2. Teacher walks east off-screen to fetch Zeno.
+ *   1. Mom (left) and teacher (right) idle while the (long, boring)
+ *      teacher dialogue plays. Mom interjects asking her to fetch Zeno;
+ *      teacher dismisses her until mom finally shouts.
+ *   2. Teacher walks east off-screen — but comes back alone with a
+ *      sheepish "ah dimenticavo, non si è scaricato... come al solito",
+ *      then mom sighs and the teacher walks east again for real.
  *   3. Teacher walks west back into shot, leading Zeno who waves at mom
  *      across the room the whole time.
  *   4. Wave exchange: Zeno settles in place still waving; mom waves back;
@@ -100,25 +106,71 @@ export class KindergartenCutsceneScene extends Phaser.Scene {
   private startTeacherDialogue() {
     const dlg = new DialogueOverlay(this, kindergartenTeacherDialogue);
     dlg.once("complete", () => {
-      // Post-talk beat: ~900 ms before the teacher heads off, so the last
-      // line can land instead of cutting straight to her walking away.
-      this.time.delayedCall(900, () => this.teacherFetchesZeno());
+      // Post-talk beat: ~900 ms before the teacher heads off, so mom's
+      // shouted last line ("VAI A PRENDERE MIO FIGLIO!!!") can land
+      // instead of cutting straight to the teacher walking away.
+      this.time.delayedCall(900, () => this.teacherFirstAttempt());
     });
   }
 
-  private teacherFetchesZeno() {
-    // Walking east — frames already face east, no flip needed.
-    this.teacher.setFlipX(false);
+  /** First trip out: teacher walks east off-screen — but won't come back
+   * with Zeno. She'll re-enter alone for the "I forgot" gag. */
+  private teacherFirstAttempt() {
+    this.walkTeacherEastOffscreen(() =>
+      this.time.delayedCall(700, () => this.teacherReturnsForgot()),
+    );
+  }
+
+  /** The setup for the gag: teacher walks back into shot alone, returns
+   * to her starting position and goes idle so she can deliver the line. */
+  private teacherReturnsForgot() {
+    // Walking back leftward: mirror the east-facing walk frames to face west.
+    this.teacher.setFlipX(true);
     this.teacher.play({ key: animKey(Char.Teacher, Anim.Walk), repeat: -1 });
 
+    this.tweens.add({
+      targets: this.teacher,
+      x: TEACHER_START_X,
+      duration: 2400,
+      ease: "Sine.easeOut",
+      onComplete: () => {
+        this.teacher.setFlipX(false);
+        this.teacher.play({ key: animKey(Char.Teacher, Anim.Idle), repeat: -1 });
+        // Tiny beat so the player registers "wait, why is she back without
+        // Zeno?" before the dialogue pops in.
+        this.time.delayedCall(600, () => this.teacherForgotDialogue());
+      },
+    });
+  }
+
+  /** The punchline + mom's sigh. After the dialogue closes the teacher
+   * heads off again, this time actually fetching Zeno. */
+  private teacherForgotDialogue() {
+    const dlg = new DialogueOverlay(this, kindergartenTeacherForgotDialogue);
+    dlg.once("complete", () => {
+      this.time.delayedCall(900, () => this.teacherSecondAttempt());
+    });
+  }
+
+  /** Second trip out: same east walk as the first, but this time the
+   * onComplete actually leads into the Zeno-leading return walk. */
+  private teacherSecondAttempt() {
+    this.walkTeacherEastOffscreen(() =>
+      this.time.delayedCall(700, () => this.teacherReturnsWithZeno()),
+    );
+  }
+
+  /** Shared "teacher exits stage right while walking" tween used for both
+   * the forgot trip and the actual fetch. */
+  private walkTeacherEastOffscreen(onArrived: () => void) {
+    this.teacher.setFlipX(false);
+    this.teacher.play({ key: animKey(Char.Teacher, Anim.Walk), repeat: -1 });
     this.tweens.add({
       targets: this.teacher,
       x: OFFSCREEN_RIGHT,
       duration: 2800,
       ease: "Sine.easeIn",
-      onComplete: () => {
-        this.time.delayedCall(700, () => this.teacherReturnsWithZeno());
-      },
+      onComplete: onArrived,
     });
   }
 
@@ -200,16 +252,28 @@ export class KindergartenCutsceneScene extends Phaser.Scene {
     // Hold the silent hug for a beat before the final dialogue lands —
     // the moment of reunion is the emotional peak, so let it breathe
     // instead of cutting straight into text.
-    this.time.delayedCall(2200, () => {
-      const dlg = new DialogueOverlay(this, kindergartenZenoDialogue);
-      dlg.once("complete", () => {
-        // Post-talk beat before the credits-style "Buona Festa della
-        // Mamma" scene, so Zeno's last line sinks in. ~1.8 s lets the
-        // hug + jump animation play out one more cycle before the cut.
-        this.time.delayedCall(1800, () =>
-          this.scene.start("HappyMothersDayScene"),
-        );
-      });
+    this.time.delayedCall(2200, () => this.runReunionDialogue());
+  }
+
+  /** First overlay: the sweet "andiamo a casa da papà" exchange.
+   * On complete, hold a silent beat (the kids-still-jumping post-hug shot)
+   * before the punchline overlay opens — that pause IS the comedy. */
+  private runReunionDialogue() {
+    const dlg = new DialogueOverlay(this, kindergartenZenoDialogue);
+    dlg.once("complete", () => {
+      this.time.delayedCall(1500, () => this.runPuzzettaDialogue());
+    });
+  }
+
+  /** Second overlay: Zeno's confession + mom's reaction. After it closes
+   * we let the hug + jump animation breathe one more cycle before cutting
+   * to the credits-style "Buona Festa della Mamma" scene. */
+  private runPuzzettaDialogue() {
+    const dlg = new DialogueOverlay(this, kindergartenZenoPuzzettaDialogue);
+    dlg.once("complete", () => {
+      this.time.delayedCall(1800, () =>
+        this.scene.start("HappyMothersDayScene"),
+      );
     });
   }
 }

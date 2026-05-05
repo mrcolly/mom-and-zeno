@@ -10,6 +10,43 @@ import {
 } from "../sprites";
 
 /**
+ * Dev-only shortcuts: `?dev=<key>` in the URL boots straight into a later
+ * scene, skipping menu / car / race. Useful when iterating on the closing
+ * cutscene's dialogue without playing through the whole game every time.
+ *
+ * Usage examples (any environment, including the deployed build):
+ *   - `?dev=car`           — skip the menu, start at the car cutscene
+ *   - `?dev=race`          — skip the menu + car, start at the race
+ *   - `?dev=kindergarten`  — skip everything up to the reunion
+ *   - `?dev=end`           — jump to the "Buona Festa della Mamma" screen
+ *
+ * Unknown values are ignored (we fall back to `MenuScene` so a typo can't
+ * brick the game).
+ */
+const DEV_START_SCENES: Readonly<Record<string, string>> = {
+  menu: "MenuScene",
+  car: "CarCutsceneScene",
+  race: "RaceScene",
+  kindergarten: "KindergartenCutsceneScene",
+  end: "HappyMothersDayScene",
+};
+
+function readDevStartScene(): string | null {
+  if (globalThis.window === undefined) return null;
+  const param = new URLSearchParams(globalThis.location.search).get("dev");
+  if (!param) return null;
+  const target = DEV_START_SCENES[param];
+  if (!target) {
+    console.warn(
+      `[dev] Unknown ?dev=${param}. Known: ${Object.keys(DEV_START_SCENES).join(", ")}`,
+    );
+    return null;
+  }
+  console.info(`[dev] Skipping straight to ${target} (?dev=${param})`);
+  return target;
+}
+
+/**
  * Loads every asset in one place; later scenes assume the texture keys here
  * are available. Texture keys match the placeholder filenames so swapping art
  * is a drag-and-drop affair (see public/assets/**).
@@ -123,6 +160,6 @@ export class BootScene extends Phaser.Scene {
       });
     }
 
-    this.scene.start("MenuScene");
+    this.scene.start(readDevStartScene() ?? "MenuScene");
   }
 }

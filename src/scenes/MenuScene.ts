@@ -36,22 +36,16 @@ export class MenuScene extends Phaser.Scene {
     const cx = GAME_WIDTH / 2;
     const cy = GAME_HEIGHT / 2;
 
+    // Title sits a touch above the vertical centre so the INIZIA button
+    // can sit a touch below it without crowding either edge — together
+    // they read as a centred title-card stack.
     const title = this.add
-      .text(cx, cy - 140, "Mamma & Zeno", {
+      .text(cx, cy - 60, "Mamma & Zeno", {
         fontFamily: FONT_FAMILY,
         fontSize: "96px",
         color: COLORS.textLight,
         stroke: "#000000",
         strokeThickness: 8,
-      })
-      .setOrigin(0.5);
-
-    this.add
-      .text(cx, cy - 50, "Un'avventura per la Festa della Mamma", {
-        fontFamily: FONT_FAMILY,
-        fontSize: "26px",
-        color: COLORS.textMuted,
-        align: "center",
       })
       .setOrigin(0.5);
 
@@ -64,7 +58,7 @@ export class MenuScene extends Phaser.Scene {
       ease: "Sine.easeInOut",
     });
 
-    createButton(this, cx, cy + 80, "INIZIA", {
+    createButton(this, cx, cy + 110, "INIZIA", {
       width: 360,
       height: 110,
       fontSize: 44,
