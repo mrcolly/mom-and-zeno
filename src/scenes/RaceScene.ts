@@ -22,6 +22,12 @@ import {
 } from "../sprites";
 import { getSafeArea } from "../viewport";
 
+/** Same touch check we use in main.ts: any finger-input capable device. */
+function isTouchDevice(): boolean {
+  if (typeof window === "undefined") return false;
+  return "ontouchstart" in window || navigator.maxTouchPoints > 0;
+}
+
 /**
  * What the runner's sprite is currently *playing*. Tracked so the per-frame
  * updater can transition between Run / Idle / Still / Jump only when the
@@ -111,7 +117,12 @@ export class RaceScene extends Phaser.Scene {
 
     this.spawnRunners();
     this.spawnObstacles();
-    this.buildHud();
+    // Touch-only HUD: keyboard players don't need (and shouldn't see) the
+    // CORRI / SALTA buttons. They take up scarce vertical real estate and
+    // can't be triggered via mouse-click in a meaningful way during play.
+    if (isTouchDevice()) {
+      this.buildHud();
+    }
     this.bindKeyboard();
 
     this.cameras.main.startFollow(this.mom.sprite, true, 0.15, 0.15);
@@ -158,11 +169,23 @@ export class RaceScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
 
+    // Different control hints depending on input device — touch players
+    // never see the keyboard keys they can't press, and desktop players
+    // don't get a phantom mention of buttons that aren't on their screen.
+    const controlLines = isTouchDevice()
+      ? [
+          "CORRI: pigia velocemente il tasto CORRI",
+          "SALTA: tocca il tasto SALTA",
+        ]
+      : [
+          "CORRI: pigia velocemente FRECCIA DESTRA / D / J",
+          "SALTA: premi SPAZIO / FRECCIA SU / W",
+        ];
+
     const rulesText = [
       "Corri contro gli altri genitori per arrivare da Zeno!",
       "",
-      "CORRI: pigia il tasto CORRI   (o freccia destra / D / J)",
-      "SALTA: tocca il tasto SALTA   (o spazio / freccia su / W)",
+      ...controlLines,
       "",
       "Se sbatti contro un ostacolo perdi velocità.",
       "Vince chi arriva primo al traguardo!",
