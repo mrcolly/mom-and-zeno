@@ -21,13 +21,19 @@ export const Sfx = {
 } as const;
 export type Sfx = (typeof Sfx)[keyof typeof Sfx];
 
+// All clips ship as 128 kbps AAC inside an m4a container — they're
+// transcoded once with `afconvert -d aac -b 128000 -f m4af <src> <out>`
+// from the originals in /sounds/ before commit. AAC at 128 kbps is the
+// sweet spot for game SFX: ~10× smaller than WAV with no audible
+// difference for our content (engine drone, footsteps loop, single-shot
+// SFX), and natively supported by every browser Phaser targets.
 export const SFX_FILES: Readonly<Record<Sfx, string>> = {
-  [Sfx.Footsteps]: "assets/audio/sfx/footsteps-running.wav",
-  [Sfx.Jump]: "assets/audio/sfx/jump.wav",
-  [Sfx.Bonk]: "assets/audio/sfx/hit-bonk.wav",
-  [Sfx.Phone]: "assets/audio/sfx/phone-ring.mp3",
-  [Sfx.CarEngine]: "assets/audio/sfx/car-engine.wav",
-  [Sfx.Fart]: "assets/audio/sfx/fart-puzzetta.wav",
+  [Sfx.Footsteps]: "assets/audio/sfx/footsteps-running.m4a",
+  [Sfx.Jump]: "assets/audio/sfx/jump.m4a",
+  [Sfx.Bonk]: "assets/audio/sfx/hit-bonk.m4a",
+  [Sfx.Phone]: "assets/audio/sfx/phone-ring.m4a",
+  [Sfx.CarEngine]: "assets/audio/sfx/car-engine.m4a",
+  [Sfx.Fart]: "assets/audio/sfx/fart-puzzetta.m4a",
 };
 
 /**
