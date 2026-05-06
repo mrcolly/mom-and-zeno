@@ -50,6 +50,11 @@ export class DialogueOverlay extends Phaser.Events.EventEmitter {
   private typingTimer?: Phaser.Time.TimerEvent;
   private isTyping = false;
 
+  // Keyboard listener (kept as a field so we can detach it on destroy —
+  // Phaser doesn't auto-clean a scene's keyboard handlers when a child
+  // object goes away).
+  private readonly keyboardHandler?: (event: KeyboardEvent) => void;
+
   constructor(scene: Phaser.Scene, lines: DialogueLine[]) {
     super();
     this.scene = scene;
@@ -146,6 +151,28 @@ export class DialogueOverlay extends Phaser.Events.EventEmitter {
       .setInteractive();
 
     this.hitArea.on("pointerdown", () => this.advance());
+
+    // Keyboard advance: same key set as the race controls (SPACE/UP/W
+    // for jump, RIGHT/D/J for run) so the player keeps the same finger
+    // mapping across cutscenes and gameplay. `event.repeat` is excluded
+    // so holding a key doesn't burn through the dialogue.
+    const kb = scene.input.keyboard;
+    if (kb) {
+      this.keyboardHandler = (event: KeyboardEvent) => {
+        if (event.repeat) return;
+        switch (event.code) {
+          case "Space":
+          case "ArrowRight":
+          case "ArrowUp":
+          case "KeyD":
+          case "KeyW":
+          case "KeyJ":
+            this.advance();
+            break;
+        }
+      };
+      kb.on("keydown", this.keyboardHandler);
+    }
 
     this.container.add([
       backdrop,
@@ -248,6 +275,9 @@ export class DialogueOverlay extends Phaser.Events.EventEmitter {
 
   destroy() {
     this.cancelTyping();
+    if (this.keyboardHandler) {
+      this.scene.input.keyboard?.off("keydown", this.keyboardHandler);
+    }
     if (this.container?.scene) {
       this.container.destroy();
     }
