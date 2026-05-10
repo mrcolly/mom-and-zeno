@@ -189,7 +189,7 @@ export const kindergartenTeacherForgotDialogue: DialogueLine[] = [
   {
     speaker: "right",
     portraitKey: "teacher_portrait",
-    text: "...come al solito.",
+    text: "...ma non è una novità.",
   },
   {
     speaker: "left",
